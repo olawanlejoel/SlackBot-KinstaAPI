@@ -83,53 +83,6 @@ async function restartPHPEngine(environmentId) {
 	return data;
 }
 
-// --- Handling backups with Kinsta API --- //
-
-// Get manual, schedule and system generated backups
-
-async function getBackups(environmentId) {
-	const resp = await fetch(
-		`${KinstaAPIUrl}/sites/environments/${environmentId}/backups`,
-		{
-			method: 'GET',
-			headers: getHeaders,
-		}
-	);
-
-	const data = await resp.json();
-	return data;
-}
-
-async function getDownloadableBackups(environmentId) {
-	const resp = await fetch(
-		`${KinstaAPIUrl}/sites/environments/${environmentId}/downloadable-backups`,
-		{
-			method: 'GET',
-			headers: getHeaders,
-		}
-	);
-
-	const data = await resp.json();
-	return data;
-}
-
-async function restoreBackup(targetEnvironmentId, backupId, environmentName) {
-	const resp = await fetch(
-		`${KinstaAPIUrl}/sites/environments/${targetEnvironmentId}/backups/restore`,
-		{
-			method: 'POST',
-			headers: postHeaders,
-			body: JSON.stringify({
-				backup_id: backupId,
-				env_display_name_of_backup: environmentName,
-			}),
-		}
-	);
-
-	const data = await resp.json();
-	return data;
-}
-
 // -------- SLASH COMMANDS ---------- //
 
 // creating slash commands
@@ -202,77 +155,6 @@ app.command('/restart_php_engine', async ({ command, ack, say }) => {
 	if (response) {
 		say(
 			`Hey 👋, \n\n${response.message} by using the /operation_status slack commmand. \n\nOperation Id is ${response.operation_id}`
-		);
-	}
-});
-
-app.command('/get_backups', async ({ command, ack, say }) => {
-	await ack();
-
-	let environmentId = command.text;
-	let response = await getBackups(environmentId);
-
-	let backups = response.environment.backups;
-
-	let backupDetails = backups
-		.map((backup) => {
-			return `Backup ID: ${backup.id}\nName: ${backup.name}\nNote: ${
-				backup.note
-			}\nType: ${backup.type}\nCreated At: ${new Date(backup.created_at)}\n\n`;
-		})
-		.join('');
-
-	if (backupDetails) {
-		say(
-			`Hey 👋, here are the backup details for environment ID ${environmentId}:\n\n${backupDetails}`
-		);
-	} else {
-		say(`No backups found for environment ID ${environmentId}`);
-	}
-});
-
-app.command('/get_downloadable_backups', async ({ command, ack, say }) => {
-	await ack();
-
-	let environmentId = command.text;
-	let response = await getDownloadableBackups(environmentId);
-
-	let backups = response.environment.downloadable_backups;
-
-	let downloadable_backupDetails = backups
-		.map((backup) => {
-			return `Backup ID: ${backup.id}\nDownload Link: ${
-				backup.download_link
-			}\nCreated At: ${new Date(backup.created_at)}\nExpires At: ${new Date(
-				backup.expires_at
-			)}\nIs Generation in Progress: ${backup.is_generation_in_progress}\n\n`;
-		})
-		.join('');
-
-	if (downloadable_backupDetails) {
-		say(
-			`Hey 👋, here are the downloadable backup details for environment ${environmentId}:\n\n${downloadable_backupDetails}`
-		);
-	} else {
-		say(`No downloadable backups found for environment ${environmentId}`);
-	}
-});
-
-app.command('/restore_backup', async ({ command, ack, say }) => {
-	await ack();
-
-	const [targetEnvironmentId, backupId, environmentName] =
-		command.text.split(' ');
-
-	let response = await restoreBackup(
-		targetEnvironmentId,
-		backupId,
-		environmentName
-	);
-
-	if (response) {
-		say(
-			`Hey 👋, \n\n${response.message}. You can use the /operation_status slack commmand to check the status of this Operation Id ${response.operation_id}`
 		);
 	}
 });
